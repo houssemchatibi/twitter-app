@@ -16,32 +16,36 @@ const LoginPage = () => {
 
 	const queryClient = useQueryClient();
 
-	const { mutate:loginMutation, isError, isPending, error } = useMutation({
-
-		mutationFn: async ({ username,password }) => {
+	const {
+		mutate: loginMutation,
+		isPending,
+		isError,
+		error,
+	} = useMutation({
+		mutationFn: async ({ username, password }) => {
 			try {
 				const res = await fetch("/api/auth/login", {
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",
 					},
-				body: JSON.stringify({ username,password }),
-			})
+					body: JSON.stringify({ username, password }),
+				});
 
-			const data = await res.json();
-			if (!res.ok) throw new Error(data.error || "something is wrong");
-				console.log(data);
-				return data;
+				const data = await res.json();
+
+				if (!res.ok) {
+					throw new Error(data.error || "Something went wrong");
+				}
 			} catch (error) {
-				console.error(error);
-				throw error;
+				throw new Error(error);
 			}
 		},
 		onSuccess: () => {
-			toast.success("Account created successfully");
-
+			// refetch the authUser
+			queryClient.invalidateQueries({ queryKey: ["authUser"] });
 		},
-	})
+	});
 
   const handleSubmit = (e) => {
 		e.preventDefault();

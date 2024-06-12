@@ -48,7 +48,7 @@ const ProfilePage = () => {
             reader.readAsDataURL(file);
         }
     };
-
+    console.log("feedTYPE IS" , feedType)
     return (
         <div className='flex-[4_4_0]  border-r border-gray-700 min-h-screen '>
             {isLoading && <ProfileHeaderSkeleton />}
@@ -129,7 +129,7 @@ const ProfilePage = () => {
                     </div>
                     <div className='flex flex-col gap-4 mt-14 px-4'>
                         <div className='flex flex-col'>
-                            <span className='font-bold text-lg'>{user?.fullName}</span>
+                            <span className='font-bold text-lg'>{user?.fullName} </span>
 
                             <span className='text-sm text-slate-500'>@{user?.username}</span>
                             <span className='text-sm my-1'>{user?.bio}</span>
@@ -188,7 +188,7 @@ const ProfilePage = () => {
                     </div>
                 </>
             )}
-            <Posts />
+            <Posts feedType={feedType} />
         </div>
     )
 }
