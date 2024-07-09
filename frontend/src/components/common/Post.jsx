@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom';
 import { FaRegComment } from "react-icons/fa";
 import { BiRepost } from "react-icons/bi";
@@ -8,6 +8,7 @@ import { FaTrash } from "react-icons/fa";
 import { QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import LoadingSpinner from './LoadingSpinner';
+import { formatPostDate } from '../../utils/date';
 
 const Post = ({ post }) => {
 
@@ -18,8 +19,8 @@ const Post = ({ post }) => {
     const isLiked = post.likes.includes(autUser._id);
 
     const isMyPost = autUser._id === post.user._id;
-
-    const formattedDate = "1h";
+    const commentsEndRef = useRef(null);
+    const formattedDate = formatPostDate(post.createdAt);
 
     
 
@@ -110,12 +111,6 @@ const Post = ({ post }) => {
             }
         },
         onSuccess: (updatedComments) => {
-            if (!Array.isArray(updatedComments)) {
-              console.error("updatedComments is not an array:", updatedComments);
-              return;
-            }
-          
-            console.log("Updated Comments: ", updatedComments);  // Vérification des données reçues
             setComment("");
             toast.success("Comment added successfully");
           
@@ -127,6 +122,9 @@ const Post = ({ post }) => {
                 return p;
               });
             });
+            if (commentsEndRef.current) {
+                commentsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+            }
           },
         onError:() =>{
             toast.error(error.message);
@@ -148,6 +146,13 @@ const Post = ({ post }) => {
         e.preventDefault();
         likePost();
     };
+
+    useEffect(() => {
+        if (commentsEndRef.current) {
+            commentsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [post.comments]);
+
     return (
         <div className='flex gap-2 items-start p-4 border-b border-gray-700'>
 
@@ -222,6 +227,7 @@ const Post = ({ post }) => {
                                                 </div>
                                                 <div className='text-sm'>{comment.text}</div>
                                             </div>
+                                            <div ref={commentsEndRef}></div>
                                         </div>
                                     ))}
                                 </div>
