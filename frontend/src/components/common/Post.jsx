@@ -21,7 +21,7 @@ const Post = ({ post }) => {
 
     const formattedDate = "1h";
 
-    const isCommenting = false;
+    
 
     const queryClient = useQueryClient();
 
@@ -86,12 +86,61 @@ const Post = ({ post }) => {
         }
     })
 
+    const {mutate: commentPost, isPending: isCommenting } = useMutation({
+        mutationFn : async()=>{
+            try {
+                
+            const res = await fetch(`api/posts/comment/${post._id}`,{
+                method:"Post",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ text: comment }),
+            })
+
+            if (!res.ok) {
+                throw new Error(data.error || "Something went wrong");
+            }
+            const data = await res.json();
+            return data;
+
+            
+            } catch (error) {
+                throw new Error(error);
+            }
+        },
+        onSuccess: (updatedComments) => {
+            if (!Array.isArray(updatedComments)) {
+              console.error("updatedComments is not an array:", updatedComments);
+              return;
+            }
+          
+            console.log("Updated Comments: ", updatedComments);  // Vérification des données reçues
+            setComment("");
+            toast.success("Comment added successfully");
+          
+            queryClient.setQueryData(["posts"], (oldData) => {
+              return oldData.map((p) => {
+                if (p._id === post._id) {
+                  return { ...p, comments: updatedComments }; // Remplace les commentaires existants par les commentaires mis à jour
+                }
+                return p;
+              });
+            });
+          },
+        onError:() =>{
+            toast.error(error.message);
+        }
+    })
+
     const handleDeletePost = () => {
         deletePost();
 
     };
     const handlePostComment = (e) => {
         e.preventDefault();
+        if (isCommenting) return;
+        commentPost();
     };
 
     const handleLikePost = (e) => {
