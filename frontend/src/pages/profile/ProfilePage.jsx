@@ -12,46 +12,60 @@ import { IoCalendarOutline } from "react-icons/io5";
 import { FaLink } from "react-icons/fa";
 import { MdEdit } from "react-icons/md";
 import EditProfileModal from "./EditProfileModal";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatMemberSinceDate } from "../../utils/date";
+import useFollow from '../../hooks/useFollow';
+import toast from "react-hot-toast";
+import useUpdateUserProfile from "../../hooks/useUpdateUserProfile";
 
 const ProfilePage = () => {
 
     const [coverImg, setCoverImg] = useState(null);
     const [profileImg, setProfileImg] = useState(null);
+    
     const [feedType, setFeedType] = useState("posts");
 
     const coverImgRef = useRef(null);
     const profileImgRef = useRef(null);
 
+    const queryClient = useQueryClient();
+
     const { username } = useParams();
-    
-    const isMyProfile = true;
-   
+
+    const { follow, isPending } = useFollow();
+
 
     const { data: authUser } = useQuery({ queryKey: ["authUser"] });
 
-   const {
-		data: user,
-		isLoading,
-		refetch,
-		isRefetching,
-	} = useQuery({
-		queryKey: ["userProfile"],
-		queryFn: async () => {
-			try {
-				const res = await fetch(`/api/users/profile/${username}`);
-				const data = await res.json();
-				if (!res.ok) {
-					throw new Error(data.error || "Something went wrong");
-				}
-				return data;
-			} catch (error) {
-				throw new Error(error);
-			}
-		},
-	});
+    const {updateProfile,isUpdatingProfile} = useUpdateUserProfile({ profileImg, coverImg, setCoverImg, setProfileImg });
     
+    useEffect(() => {
+        console.log("ProfilePage - coverImg:", coverImg);
+        console.log("ProfilePage - profileImg:", profileImg);
+    }, [coverImg, profileImg]);
+
+    const {
+        data: user,
+        isLoading,
+        refetch,
+        isRefetching,
+    } = useQuery({
+        queryKey: ["userProfile"],
+        queryFn: async () => {
+            try {
+                const res = await fetch(`/api/users/profile/${username}`);
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.error || "Something went wrong");
+                }
+                return data;
+            } catch (error) {
+                throw new Error(error);
+            }
+        },
+    });
+
+   
 
     const handleImgChange = (e, state) => {
         const file = e.target.files[0];
@@ -60,21 +74,27 @@ const ProfilePage = () => {
             reader.onload = () => {
                 state === "coverImg" && setCoverImg(reader.result);
                 state === "profileImg" && setProfileImg(reader.result);
+                setUpdateSuccess(false);
             };
             reader.readAsDataURL(file);
         }
     };
-   
+
+    const isMyProfile = authUser._id === user?._id;
     const memberSinceDate = formatMemberSinceDate(user?.createdAt);
+    const amIFollowing = authUser?.following.includes(user?._id);
 
     useEffect(() => {
-		refetch();
-	}, [username, refetch]);
+        refetch();
+        console.log("coverImg:", coverImg);
+        console.log("profileImg:", profileImg);
+    }, [coverImgRef, profileImg, refetch]);
+ 
 
     return (
         <div className='flex-[4_4_0]  border-r border-gray-700 min-h-screen '>
             {isLoading && isRefetching && <ProfileHeaderSkeleton />}
-            {!isLoading && !isRefetching && !user &&  <p className='text-center text-lg mt-4'>User not found</p>}
+            {!isLoading && !isRefetching && !user && <p className='text-center text-lg mt-4'>User not found</p>}
             {!isLoading && !isRefetching && user && (
                 <>
                     <div className='flex gap-10 px-4 py-2 items-center'>
@@ -130,22 +150,25 @@ const ProfilePage = () => {
                         </div>
                     </div>
                     <div className='flex justify-end px-4 mt-5'>
-                        {isMyProfile && <EditProfileModal />}
+                        {isMyProfile && <EditProfileModal authUser={authUser}   />}
 
                         {!isMyProfile && (
                             <button
                                 className='btn btn-outline rounded-full btn-sm'
-                                onClick={() => alert("Followed successfully")}
+                                onClick={() => follow(user?._id)}
                             >
-                                Follow
+                                {isPending && "Loading..."}
+                                {!isPending && amIFollowing && "Unfollow"}
+                                {!isPending && !amIFollowing && "Follow"}
                             </button>
                         )}
                         {(coverImg || profileImg) && (
                             <button
                                 className='btn btn-primary rounded-full btn-sm text-white px-4 ml-2'
-                                onClick={() => alert("Profile updated successfully")}
+                                onClick={(e) =>{ e.preventDefault();
+                                    updateProfile({ profileImg, coverImg });}}
                             >
-                                Update
+                                {isUpdatingProfile ? "updating...." : "Update"}
                             </button>
                         )}
                     </div>
