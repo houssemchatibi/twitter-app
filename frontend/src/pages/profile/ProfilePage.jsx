@@ -17,6 +17,7 @@ import { formatMemberSinceDate } from "../../utils/date";
 import useFollow from '../../hooks/useFollow';
 import toast from "react-hot-toast";
 import useUpdateUserProfile from "../../hooks/useUpdateUserProfile";
+import { useSocketContext } from "../../context/SocketContext";
 
 const ProfilePage = () => {
 
@@ -28,6 +29,8 @@ const ProfilePage = () => {
     const coverImgRef = useRef(null);
     const profileImgRef = useRef(null);
 
+    const { onlineUsers } = useSocketContext();
+
     const queryClient = useQueryClient();
 
     const { username } = useParams();
@@ -37,12 +40,12 @@ const ProfilePage = () => {
 
     const { data: authUser } = useQuery({ queryKey: ["authUser"] });
 
+    //const isOnline = authUser.following.includes(onlineUsers);
+   
+
     const {updateProfile,isUpdatingProfile} = useUpdateUserProfile({ profileImg, coverImg, setCoverImg, setProfileImg });
     
-    useEffect(() => {
-        console.log("ProfilePage - coverImg:", coverImg);
-        console.log("ProfilePage - profileImg:", profileImg);
-    }, [coverImg, profileImg]);
+  
 
     const {
         data: user,
@@ -83,11 +86,13 @@ const ProfilePage = () => {
     const isMyProfile = authUser._id === user?._id;
     const memberSinceDate = formatMemberSinceDate(user?.createdAt);
     const amIFollowing = authUser?.following.includes(user?._id);
+    const isOnline = onlineUsers.some(userId => authUser.following.includes(userId));
+    console.log("onlineusers:",onlineUsers);
+    console.log("isOnline:",isOnline);
 
     useEffect(() => {
         refetch();
-        console.log("coverImg:", coverImg);
-        console.log("profileImg:", profileImg);
+      
     }, [coverImgRef, profileImg, refetch]);
  
 
@@ -135,7 +140,7 @@ const ProfilePage = () => {
                             onChange={(e) => handleImgChange(e, "profileImg")}
                         />
                         {/* USER AVATAR */}
-                        <div className='avatar absolute -bottom-16 left-4'>
+                        <div className={`avatar ${isOnline ? "online" : ""} absolute -bottom-16 left-4`}>
                             <div className='w-32 rounded-full relative group/avatar'>
                                 <img src={profileImg || user?.profileImg || "/avatar-placeholder.png"} />
                                 <div className='absolute top-5 right-3 p-1 bg-primary rounded-full group-hover/avatar:opacity-100 opacity-0 cursor-pointer'>
