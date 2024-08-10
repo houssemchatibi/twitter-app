@@ -6,10 +6,12 @@ import { FaUser } from "react-icons/fa";
 import { FaHeart } from "react-icons/fa6";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
+import { useEffect } from "react";
+import { useNotification } from "../../context/NotificationContext";
 
 const NotificationPage = () => {
 
-    
+    const { setNotificationCount } = useNotification();
 
     const queryClient = useQueryClient();
 	const { data: notifications, isLoading } = useQuery({
@@ -51,6 +53,38 @@ const NotificationPage = () => {
 			toast.error(error.message);
 		},
     })
+
+    const { mutate: readNoti, isPending: isLiking } = useMutation({
+        mutationFn: async () => {
+            try {
+                const res = await fetch(`api/notifications/read`, {
+                    method: "Post"
+                })
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || "Something went wrong");
+                }
+
+                return data;
+
+            } catch (error) {
+                throw new Error(error);
+            }
+        },
+        onSuccess: () => {
+            setNotificationCount(0);
+            
+          },
+});
+
+    useEffect(() => {
+    
+        readNoti();
+    }, []);
+
+
 
     
     return (

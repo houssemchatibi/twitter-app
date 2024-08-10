@@ -1,6 +1,8 @@
 import Notification from "../models/notification.model.js";
 import User from "../models/user.model.js"
 import { v2 as cloudinary } from "cloudinary";
+import { getReceiverSocketId, io } from "../socket/socket.js";
+
 
 
 export const getUserProfile = async (req, res) => {
@@ -64,6 +66,16 @@ export const followUnfollowUser = async (req, res) => {
             })
 
           await notification.save() ;
+
+          const unreadNotificationsCount = await Notification.countDocuments({ to: userToModify._id, read: false });
+          const receiverSocketId = getReceiverSocketId(userToModify._id);
+          if (receiverSocketId) {
+              io.to(receiverSocketId).emit('new-notification', {
+                  message: `${req.user.username} followed you.`,
+                  count: unreadNotificationsCount,
+                  type: "follow",
+              });
+          }
 
             res.status(200).json({ message: "User following successfully" });
         }

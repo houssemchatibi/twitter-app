@@ -2,6 +2,7 @@ import Notification from "../models/notification.model.js";
 import Post from "../models/post.model.js";
 import User from "../models/user.model.js";
 import { v2 as cloudinary } from "cloudinary";
+import { getReceiverSocketId,io } from "../socket/socket.js";
 
 
 
@@ -96,9 +97,6 @@ export const commentOnPost = async (req, res) => {
         post.comments.push(comment);
         await post.save();
 
-        // Récupérer les commentaires mis à jour
-        const updatedComments = await Post.findById(postId).select('comments').populate('comments.user', 'profileImg fullName username');
-
         // Renvoie uniquement les commentaires mis à jour
         res.status(200).json(post.comments);
     } catch (error) {
@@ -143,6 +141,16 @@ export const likeUnlikePost = async (req, res) => {
                 type: "like",
             });
             await notification.save();
+
+            const unreadNotificationsCount = await Notification.countDocuments({ to: post.user, read: false });
+            const receiverSocketId = getReceiverSocketId(post.user);
+            if (receiverSocketId) {
+                io.to(receiverSocketId).emit('new-notification', {
+                    message: `${req.user.username} liked your post.`,
+                    count: unreadNotificationsCount,
+                    type:"like",
+                });
+            }
 
             const updatedLikes = post.likes;
             res.status(200).json(updatedLikes);
